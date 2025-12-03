@@ -27,3 +27,4 @@ Steps to run:
 7. Run command on terminal: ./comparison_runner mimic_data.csv 4
 Once the above steps are done, performance.txt file will be generated with all the comparisons on performance.
 
+The dataset that is available is a synthetic dataset generated based on the actula MIMIC clinical dataset. The original dataset is not available due to privacy reasons.
