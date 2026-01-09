@@ -1,0 +1,30 @@
+# Executables
+deathPrediction/serial_death_pred
+deathPrediction/openmp_death_pred
+deathPrediction/pthread_death_pred
+deathPrediction/mpi_death_pred
+deathPrediction/hybrid_openmp_mpi_death_pred
+deathPrediction/hybrid_pthread_mpi_death_pred
+deathPrediction/hybrid_openmp_pthread_death_pred
+deathPrediction/hybrid_mpi_openmp_pthread_death_pred
+deathPrediction/comparison_runner
+
+# Timing files
+deathPrediction/timing_*.txt
+deathPrediction/performance_report.txt
+
+# Build artifacts
+*.o
+*.out
+*.exe
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
