@@ -169,6 +169,18 @@ This will generate:
 - Individual timing files (`timing_*.txt`)
 - Comprehensive performance report (`performance_report.txt`)
 
+### Hybrid Implementations Results
+
+For detailed performance analysis of all hybrid implementations, see:
+- **[HYBRID_EXECUTION_SUMMARY.md](HYBRID_EXECUTION_SUMMARY.md)** - Quick summary and reproduction steps
+- **[deathPrediction/HYBRID_RESULTS.md](deathPrediction/HYBRID_RESULTS.md)** - Comprehensive performance analysis
+
+To run all hybrid implementations:
+```bash
+cd deathPrediction
+./run_hybrid_tests.sh
+```
+
 ## Performance Characteristics
 
 ### Expected Speedup Patterns
