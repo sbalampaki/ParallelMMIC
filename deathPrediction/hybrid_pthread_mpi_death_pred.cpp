@@ -49,8 +49,6 @@ struct PredictThreadData {
     double totalPred;
 };
 
-pthread_mutex_t updateMutex = PTHREAD_MUTEX_INITIALIZER;
-
 double sigmoid(double z) {
     return 1.0 / (1.0 + exp(-z));
 }
@@ -132,8 +130,8 @@ public:
             int mpiDataSize = mpiEnd - mpiStart;
             
             // Pthread: Create thread pool within MPI process
-            pthread_t threads[numThreads];
-            ThreadData threadData[numThreads];
+            vector<pthread_t> threads(numThreads);
+            vector<ThreadData> threadData(numThreads);
             
             int threadChunkSize = mpiDataSize / numThreads;
             
@@ -202,8 +200,8 @@ public:
         int mpiDataSize = mpiEnd - mpiStart;
         
         // Pthread: Create thread pool within MPI process
-        pthread_t threads[numThreads];
-        PredictThreadData threadData[numThreads];
+        vector<pthread_t> threads(numThreads);
+        vector<PredictThreadData> threadData(numThreads);
         
         int threadChunkSize = mpiDataSize / numThreads;
         
@@ -239,8 +237,8 @@ public:
         int mpiDataSize = mpiEnd - mpiStart;
         
         // Pthread: Create thread pool within MPI process
-        pthread_t threads[numThreads];
-        PredictThreadData threadData[numThreads];
+        vector<pthread_t> threads(numThreads);
+        vector<PredictThreadData> threadData(numThreads);
         
         int threadChunkSize = mpiDataSize / numThreads;
         

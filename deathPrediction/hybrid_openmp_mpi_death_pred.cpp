@@ -97,8 +97,10 @@ public:
             // Update bias
             bias += lr * globalBiasGrad;
             
-            // For simplicity, update weights based on local gradients
-            // In production, you'd want proper all-reduce for all weights
+            // Update weights based on local gradients
+            // Note: For demonstration purposes, weights are updated locally per process.
+            // In production, all weights should be synchronized with MPI_Allreduce
+            // for consistency across all processes.
             for (auto& kv : ethnicityWeights) {
                 if (localEthGrads.count(kv.first)) {
                     kv.second += lr * localEthGrads[kv.first];
@@ -115,7 +117,7 @@ public:
                 }
             }
             
-            // Broadcast updated weights
+            // Broadcast updated weights from rank 0 to ensure consistency
             MPI_Bcast(&bias, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
         }
     }

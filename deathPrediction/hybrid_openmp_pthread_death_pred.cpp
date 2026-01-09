@@ -105,8 +105,8 @@ public:
                 int ompDataSize = ompEnd - ompStart;
                 
                 // Pthread: Fine-grained parallelism within each OpenMP thread
-                pthread_t threads[numPThreads];
-                GradientThreadData threadData[numPThreads];
+                vector<pthread_t> threads(numPThreads);
+                vector<GradientThreadData> threadData(numPThreads);
                 
                 int pthreadChunkSize = ompDataSize / numPThreads;
                 
