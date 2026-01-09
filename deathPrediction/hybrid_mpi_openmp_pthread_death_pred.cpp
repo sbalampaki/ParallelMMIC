@@ -37,8 +37,6 @@ struct GradientThreadData {
     map<int, double> icdGrads;
 };
 
-pthread_mutex_t gradientMutex = PTHREAD_MUTEX_INITIALIZER;
-
 double sigmoid(double z) {
     return 1.0 / (1.0 + exp(-z));
 }
