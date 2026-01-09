@@ -109,7 +109,7 @@ private:
     
 public:
     LogisticRegressionHybridPThreadMPI(int r, int s, int threads = 4) 
-        : bias(0.0), rank(r), size(s), numThreads(threads) {}
+        : bias(0.0), rank(r), size(s), numThreads(threads > 0 ? threads : 1) {}
     
     void train(const vector<Patient>& data, int epochs = 100, double lr = 0.01) {
         // Initialize weights (only on rank 0)
@@ -171,6 +171,8 @@ public:
             bias += lr * globalBiasGrad;
             
             // Update weights based on local gradients
+            // KNOWN LIMITATION: Weights updated locally for demonstration.
+            // Production code should use MPI_Allreduce for full weight synchronization.
             for (auto& kv : ethnicityWeights) {
                 if (localEthGrads.count(kv.first)) {
                     kv.second += lr * localEthGrads[kv.first];
@@ -187,7 +189,7 @@ public:
                 }
             }
             
-            // Broadcast updated weights
+            // Broadcast updated bias
             MPI_Bcast(&bias, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
         }
     }

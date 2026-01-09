@@ -73,7 +73,7 @@ private:
     int numPThreads;
     
 public:
-    LogisticRegressionHybridOMPPThread(int pthreads = 2) : bias(0.0), numPThreads(pthreads) {}
+    LogisticRegressionHybridOMPPThread(int pthreads = 2) : bias(0.0), numPThreads(pthreads > 0 ? pthreads : 1) {}
     
     void train(const vector<Patient>& data, int epochs = 100, double lr = 0.01) {
         // Initialize weights

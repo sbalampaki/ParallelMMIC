@@ -77,7 +77,7 @@ private:
     
 public:
     LogisticRegressionTripleHybrid(int r, int s, int pthreads = 2) 
-        : bias(0.0), rank(r), size(s), numPThreads(pthreads) {}
+        : bias(0.0), rank(r), size(s), numPThreads(pthreads > 0 ? pthreads : 1) {}
     
     void train(const vector<Patient>& data, int epochs = 100, double lr = 0.01) {
         // Initialize weights (only on rank 0)
@@ -163,6 +163,8 @@ public:
             bias += lr * globalBiasGrad;
             
             // Update weights based on local gradients
+            // KNOWN LIMITATION: Weights updated locally for demonstration.
+            // Production code should use MPI_Allreduce for full weight synchronization.
             for (auto& kv : ethnicityWeights) {
                 if (processEthGrads.count(kv.first)) {
                     kv.second += lr * processEthGrads[kv.first];
@@ -179,7 +181,7 @@ public:
                 }
             }
             
-            // Broadcast updated weights
+            // Broadcast updated bias
             MPI_Bcast(&bias, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
         }
     }
