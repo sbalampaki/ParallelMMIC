@@ -21,8 +21,11 @@ HYBRID_OMP_PTHREAD = hybrid_openmp_pthread_death_pred
 HYBRID_TRIPLE = hybrid_mpi_openmp_pthread_death_pred
 RUNNER = comparison_runner
 
+# Decision Tree executables
+DT_SERIAL = serial_decision_tree_death_pred
+
 # Default target (excluding CUDA due to NVIDIA GPU hardware dependency)
-all: $(SERIAL) $(OPENMP) $(PTHREAD) $(MPI) $(HYBRID_OMP_MPI) $(HYBRID_PTHREAD_MPI) $(HYBRID_OMP_PTHREAD) $(HYBRID_TRIPLE) $(RUNNER)
+all: $(SERIAL) $(OPENMP) $(PTHREAD) $(MPI) $(HYBRID_OMP_MPI) $(HYBRID_PTHREAD_MPI) $(HYBRID_OMP_PTHREAD) $(HYBRID_TRIPLE) $(RUNNER) $(DT_SERIAL)
 
 # Target to build all including CUDA (only if nvcc is available)
 all_with_cuda: all
@@ -116,6 +119,11 @@ $(RUNNER): comparison_runner.cpp
 	@echo "Compiling comparison runner..."
 	$(CXX) $(CXXFLAGS) -o $(RUNNER) comparison_runner.cpp
 
+# Decision Tree - Serial implementation
+$(DT_SERIAL): serial_decision_tree_death_pred.cpp
+	@echo "Compiling Decision Tree serial implementation..."
+	$(CXX) $(CXXFLAGS) -o $(DT_SERIAL) serial_decision_tree_death_pred.cpp
+
 # Individual targets
 serial: $(SERIAL)
 openmp: $(OPENMP)
@@ -127,11 +135,12 @@ hybrid_pthread_mpi: $(HYBRID_PTHREAD_MPI)
 hybrid_omp_pthread: $(HYBRID_OMP_PTHREAD)
 hybrid_triple: $(HYBRID_TRIPLE)
 runner: $(RUNNER)
+dt_serial: $(DT_SERIAL)
 
 # Clean build artifacts
 clean:
 	@echo "Cleaning build artifacts..."
-	rm -f $(SERIAL) $(OPENMP) $(PTHREAD) $(MPI) $(CUDA) $(HYBRID_OMP_MPI) $(HYBRID_PTHREAD_MPI) $(HYBRID_OMP_PTHREAD) $(HYBRID_TRIPLE) $(RUNNER)
+	rm -f $(SERIAL) $(OPENMP) $(PTHREAD) $(MPI) $(CUDA) $(HYBRID_OMP_MPI) $(HYBRID_PTHREAD_MPI) $(HYBRID_OMP_PTHREAD) $(HYBRID_TRIPLE) $(RUNNER) $(DT_SERIAL)
 	rm -f timing_*.txt performance_report.txt
 	@echo "Clean complete."
 

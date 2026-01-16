@@ -1,13 +1,20 @@
 # ParallelMMIC
 
-A comprehensive implementation comparing serial and parallel approaches (OpenMP, Pthreads, MPI, and Hybrid combinations) for death rate prediction using logistic regression on MIMIC clinical dataset.
+A comprehensive implementation comparing serial and parallel approaches (OpenMP, Pthreads, MPI, and Hybrid combinations) for death rate prediction using machine learning algorithms (Logistic Regression and Decision Tree) on MIMIC clinical dataset.
 
 ## Overview
 
-This project implements a Logistic Regression model to predict patient mortality based on:
+This project implements multiple machine learning algorithms to predict patient mortality based on:
 - Ethnicity
 - Gender
 - ICD9 Primary Diagnosis Code
+
+### Machine Learning Algorithms
+
+1. **Logistic Regression** - Binary classification using gradient descent optimization
+2. **Decision Tree** - Tree-based classification using entropy and information gain
+
+For detailed information about the Decision Tree implementation, see [Decision Tree Documentation](deathPrediction/DECISION_TREE_README.md).
 
 ## Implementations
 
@@ -39,18 +46,19 @@ This project implements a Logistic Regression model to predict patient mortality
 
 ```
 deathPrediction/
-├── serial_death_pred.cpp                    # Serial implementation
-├── openmp_death_pred.cpp                    # OpenMP parallel implementation
-├── pthread_death_pred.cpp                   # Pthreads parallel implementation
-├── mpi_death_pred.cpp                       # MPI distributed implementation
-├── cuda_death_pred.cu                       # CUDA GPU-accelerated implementation
-├── hybrid_openmp_mpi_death_pred.cpp         # OpenMP+MPI hybrid
-├── hybrid_pthread_mpi_death_pred.cpp        # Pthread+MPI hybrid
-├── hybrid_openmp_pthread_death_pred.cpp     # OpenMP+Pthread hybrid
-├── hybrid_mpi_openmp_pthread_death_pred.cpp # Triple hybrid (MPI+OpenMP+Pthread)
-├── comparison_runner.cpp                    # Performance comparison script
-├── makefile                                 # Build automation
-└── mimic_data.csv                          # Sample dataset
+├── serial_death_pred.cpp                       # Serial Logistic Regression
+├── serial_decision_tree_death_pred.cpp         # Serial Decision Tree
+├── openmp_death_pred.cpp                       # OpenMP parallel implementation
+├── pthread_death_pred.cpp                      # Pthreads parallel implementation
+├── mpi_death_pred.cpp                          # MPI distributed implementation
+├── cuda_death_pred.cu                          # CUDA GPU-accelerated implementation
+├── hybrid_openmp_mpi_death_pred.cpp            # OpenMP+MPI hybrid
+├── hybrid_pthread_mpi_death_pred.cpp           # Pthread+MPI hybrid
+├── hybrid_openmp_pthread_death_pred.cpp        # OpenMP+Pthread hybrid
+├── hybrid_mpi_openmp_pthread_death_pred.cpp    # Triple hybrid (MPI+OpenMP+Pthread)
+├── comparison_runner.cpp                       # Performance comparison script
+├── makefile                                    # Build automation
+└── mimic_data.csv                             # Sample dataset
 ```
 
 ## Requirements
@@ -100,7 +108,8 @@ make all
 
 Build individual implementations:
 ```bash
-make serial              # Build serial version
+make serial              # Build serial Logistic Regression
+make dt_serial           # Build serial Decision Tree
 make openmp              # Build OpenMP version
 make pthread             # Build Pthread version
 make mpi                 # Build MPI version
@@ -120,9 +129,14 @@ make clean
 
 ### Basic Implementations
 
-**Serial:**
+**Serial Logistic Regression:**
 ```bash
 ./serial_death_pred mimic_data.csv
+```
+
+**Serial Decision Tree:**
+```bash
+./serial_decision_tree_death_pred mimic_data.csv
 ```
 
 **OpenMP:**
@@ -215,6 +229,15 @@ cd deathPrediction
 ```
 
 ## Performance Characteristics
+
+### Machine Learning Algorithm Comparison
+
+| Algorithm | Characteristics | Advantages | Use Case |
+|-----------|----------------|------------|----------|
+| **Logistic Regression** | Linear model using gradient descent | Simple, fast, probabilistic outputs | When feature relationships are linear |
+| **Decision Tree** | Tree-based using entropy/information gain | Interpretable, handles non-linear patterns | When interpretability is important |
+
+Both algorithms are implemented with the same parallel paradigms for performance comparison.
 
 ### Expected Speedup Patterns
 
