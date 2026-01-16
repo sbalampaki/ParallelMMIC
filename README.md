@@ -16,6 +16,7 @@ This project implements a Logistic Regression model to predict patient mortality
 2. **OpenMP** - Shared-memory parallel processing using compiler directives
 3. **Pthreads** - POSIX threads for fine-grained control
 4. **MPI** - Distributed memory parallelization across processes
+5. **CUDA** - GPU-accelerated implementation using NVIDIA CUDA for massively parallel computing
 
 ### Hybrid Parallel Implementations
 5. **OpenMP + MPI Hybrid** - Combines distributed memory (MPI) across nodes with shared memory (OpenMP) within each node
@@ -42,6 +43,7 @@ deathPrediction/
 ├── openmp_death_pred.cpp                    # OpenMP parallel implementation
 ├── pthread_death_pred.cpp                   # Pthreads parallel implementation
 ├── mpi_death_pred.cpp                       # MPI distributed implementation
+├── cuda_death_pred.cu                       # CUDA GPU-accelerated implementation
 ├── hybrid_openmp_mpi_death_pred.cpp         # OpenMP+MPI hybrid
 ├── hybrid_pthread_mpi_death_pred.cpp        # Pthread+MPI hybrid
 ├── hybrid_openmp_pthread_death_pred.cpp     # OpenMP+Pthread hybrid
@@ -57,6 +59,7 @@ deathPrediction/
 - **OpenMP**: Usually included with g++
 - **Pthreads**: POSIX threads library (pthread)
 - **MPI**: OpenMPI or MPICH implementation
+- **CUDA** (optional): NVIDIA CUDA Toolkit with nvcc compiler for GPU acceleration
 
 ## Installation
 
@@ -77,6 +80,16 @@ brew install open-mpi
 sudo yum install openmpi openmpi-devel
 ```
 
+### Install CUDA (optional, for GPU acceleration)
+
+**Ubuntu/Debian:**
+```bash
+# Install NVIDIA drivers first, then CUDA Toolkit
+# Visit https://developer.nvidia.com/cuda-downloads for specific instructions
+```
+
+**Note:** CUDA requires an NVIDIA GPU with compute capability 3.0 or higher.
+
 ## Building
 
 Build all implementations:
@@ -91,6 +104,7 @@ make serial              # Build serial version
 make openmp              # Build OpenMP version
 make pthread             # Build Pthread version
 make mpi                 # Build MPI version
+make cuda                # Build CUDA version (requires CUDA Toolkit)
 make hybrid_omp_mpi      # Build OpenMP+MPI hybrid
 make hybrid_pthread_mpi  # Build Pthread+MPI hybrid
 make hybrid_omp_pthread  # Build OpenMP+Pthread hybrid
@@ -127,6 +141,11 @@ export OMP_NUM_THREADS=4
 **MPI:**
 ```bash
 mpirun -np 4 ./mpi_death_pred mimic_data.csv  # 4 = number of processes
+```
+
+**CUDA:**
+```bash
+./cuda_death_pred mimic_data.csv  # Requires NVIDIA GPU with CUDA support
 ```
 
 ### Hybrid Implementations
@@ -189,7 +208,8 @@ cd deathPrediction
 2. **OpenMP**: Near-linear speedup up to the number of cores (e.g., 3.5x on 4 cores)
 3. **Pthreads**: Similar to OpenMP but with slight overhead for manual thread management
 4. **MPI**: Good speedup for distributed workloads, best on multiple nodes
-5. **Hybrid implementations**: Superior performance on multi-node, multi-core systems
+5. **CUDA**: Exceptional speedup on large datasets (10x-100x on suitable GPUs for >100K records)
+6. **Hybrid implementations**: Superior performance on multi-node, multi-core systems
 
 ### When to Use Each Implementation
 
@@ -199,6 +219,7 @@ cd deathPrediction
 | OpenMP | Multi-core single node, easy parallelization |
 | Pthreads | Fine-grained control needed, specific thread scheduling |
 | MPI | Multiple nodes, distributed memory systems |
+| CUDA | Large datasets (>100K records), NVIDIA GPU available |
 | OpenMP+MPI | HPC clusters with multi-core nodes (most common hybrid) |
 | Pthread+MPI | Need explicit thread control in distributed system |
 | OpenMP+Pthread | Different algorithm phases need different threading models |

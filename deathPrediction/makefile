@@ -3,23 +3,35 @@
 
 CXX = g++
 MPICXX = mpic++
+NVCC = nvcc
 CXXFLAGS = -std=c++11 -O3 -Wall
 OMPFLAGS = -fopenmp
 PTHREADFLAGS = -pthread
+CUDAFLAGS = -std=c++11 -O3
 
 # Executable names
 SERIAL = serial_death_pred
 OPENMP = openmp_death_pred
 PTHREAD = pthread_death_pred
 MPI = mpi_death_pred
+CUDA = cuda_death_pred
 HYBRID_OMP_MPI = hybrid_openmp_mpi_death_pred
 HYBRID_PTHREAD_MPI = hybrid_pthread_mpi_death_pred
 HYBRID_OMP_PTHREAD = hybrid_openmp_pthread_death_pred
 HYBRID_TRIPLE = hybrid_mpi_openmp_pthread_death_pred
 RUNNER = comparison_runner
 
-# Default target
+# Default target (excluding CUDA since it requires special hardware)
 all: $(SERIAL) $(OPENMP) $(PTHREAD) $(MPI) $(HYBRID_OMP_MPI) $(HYBRID_PTHREAD_MPI) $(HYBRID_OMP_PTHREAD) $(HYBRID_TRIPLE) $(RUNNER)
+
+# Target to build all including CUDA (only if nvcc is available)
+all_with_cuda: all
+	@if command -v nvcc >/dev/null 2>&1; then \
+		$(MAKE) $(CUDA); \
+	else \
+		echo "CUDA compiler (nvcc) not found. Skipping CUDA build."; \
+		echo "Install CUDA Toolkit to enable CUDA implementation."; \
+	fi
 	@echo ""
 	@echo "=========================================="
 	@echo "  All implementations compiled successfully!"
@@ -36,6 +48,10 @@ all: $(SERIAL) $(OPENMP) $(PTHREAD) $(MPI) $(HYBRID_OMP_MPI) $(HYBRID_PTHREAD_MP
 	@echo "  ./$(OPENMP) mimic_data.csv"
 	@echo "  ./$(PTHREAD) mimic_data.csv 4"
 	@echo "  mpirun -np 4 ./$(MPI) mimic_data.csv"
+	@echo ""
+	@echo "CUDA implementation (requires CUDA Toolkit):"
+	@echo "  make cuda           # Build CUDA implementation"
+	@echo "  ./$(CUDA) mimic_data.csv"
 	@echo ""
 	@echo "Hybrid implementations:"
 	@echo "  mpirun -np 2 ./$(HYBRID_OMP_MPI) mimic_data.csv"
@@ -63,6 +79,17 @@ $(PTHREAD): pthread_death_pred.cpp
 $(MPI): mpi_death_pred.cpp
 	@echo "Compiling MPI implementation..."
 	$(MPICXX) $(CXXFLAGS) -o $(MPI) mpi_death_pred.cpp
+
+# CUDA implementation
+$(CUDA): cuda_death_pred.cu
+	@echo "Compiling CUDA implementation..."
+	@if command -v nvcc >/dev/null 2>&1; then \
+		$(NVCC) $(CUDAFLAGS) -o $(CUDA) cuda_death_pred.cu; \
+	else \
+		echo "Error: CUDA compiler (nvcc) not found."; \
+		echo "Please install CUDA Toolkit to build CUDA implementation."; \
+		exit 1; \
+	fi
 
 # Hybrid OpenMP+MPI implementation
 $(HYBRID_OMP_MPI): hybrid_openmp_mpi_death_pred.cpp
@@ -94,6 +121,7 @@ serial: $(SERIAL)
 openmp: $(OPENMP)
 pthread: $(PTHREAD)
 mpi: $(MPI)
+cuda: $(CUDA)
 hybrid_omp_mpi: $(HYBRID_OMP_MPI)
 hybrid_pthread_mpi: $(HYBRID_PTHREAD_MPI)
 hybrid_omp_pthread: $(HYBRID_OMP_PTHREAD)
@@ -103,7 +131,7 @@ runner: $(RUNNER)
 # Clean build artifacts
 clean:
 	@echo "Cleaning build artifacts..."
-	rm -f $(SERIAL) $(OPENMP) $(PTHREAD) $(MPI) $(HYBRID_OMP_MPI) $(HYBRID_PTHREAD_MPI) $(HYBRID_OMP_PTHREAD) $(HYBRID_TRIPLE) $(RUNNER)
+	rm -f $(SERIAL) $(OPENMP) $(PTHREAD) $(MPI) $(CUDA) $(HYBRID_OMP_MPI) $(HYBRID_PTHREAD_MPI) $(HYBRID_OMP_PTHREAD) $(HYBRID_TRIPLE) $(RUNNER)
 	rm -f timing_*.txt performance_report.txt
 	@echo "Clean complete."
 
@@ -128,6 +156,7 @@ help:
 	@echo "  make openmp                 - Build only OpenMP implementation"
 	@echo "  make pthread                - Build only Pthreads implementation"
 	@echo "  make mpi                    - Build only MPI implementation"
+	@echo "  make cuda                   - Build only CUDA implementation (requires CUDA Toolkit)"
 	@echo "  make hybrid_omp_mpi         - Build only OpenMP+MPI hybrid"
 	@echo "  make hybrid_pthread_mpi     - Build only Pthread+MPI hybrid"
 	@echo "  make hybrid_omp_pthread     - Build only OpenMP+Pthread hybrid"
@@ -142,8 +171,9 @@ help:
 	@echo "  - OpenMP support (usually included with g++)"
 	@echo "  - POSIX threads library (pthread)"
 	@echo "  - MPI implementation (OpenMPI or MPICH)"
+	@echo "  - CUDA Toolkit with nvcc (optional, for CUDA implementation)"
 	@echo ""
 	@echo "Data file format (CSV):"
 	@echo "  SUBJECT_ID,HADM_ID,HOSPITAL,EXPIRE_FLAG,ADMITTIME,ETHNICITY,GENDER,DOB,AGE_AT_ADMISSION,ICD9_CODE_1"
 
-.PHONY: all serial openmp pthread mpi hybrid_omp_mpi hybrid_pthread_mpi hybrid_omp_pthread hybrid_triple runner clean test help
+.PHONY: all all_with_cuda serial openmp pthread mpi cuda hybrid_omp_mpi hybrid_pthread_mpi hybrid_omp_pthread hybrid_triple runner clean test help
