@@ -106,14 +106,28 @@ __global__ void computePredictions(
     const int* ethnicityIndices,
     const int* genderIndices,
     const int* icd9Indices,
-    const double* weights,
+    const double* ethnicityWeights,
+    const double* genderWeights,
+    const double* icd9Weights,
+    double bias,
     double* predictions,
-    int n
+    int n,
+    int numEthnicities,
+    int numGenders,
+    int numIcd9
 ) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx < n) {
         // Parallel computation per thread
-        predictions[idx] = sigmoid(compute_z(idx, ...));
+        double z = bias;
+        if (ethnicityIndices[idx] >= 0 && ethnicityIndices[idx] < numEthnicities)
+            z += ethnicityWeights[ethnicityIndices[idx]];
+        if (genderIndices[idx] >= 0 && genderIndices[idx] < numGenders)
+            z += genderWeights[genderIndices[idx]];
+        if (icd9Indices[idx] >= 0 && icd9Indices[idx] < numIcd9)
+            z += icd9Weights[icd9Indices[idx]];
+        
+        predictions[idx] = sigmoid_device(z);
     }
 }
 ```
