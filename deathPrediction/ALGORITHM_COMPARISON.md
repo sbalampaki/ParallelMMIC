@@ -27,8 +27,8 @@ Both algorithms have been executed on the same dataset (`mimic_data.csv` with 10
 
 | Metric | Logistic Regression | Decision Tree | Winner |
 |--------|-------------------|---------------|---------|
-| **Load Time** | 0.0590 seconds | 0.0066 seconds | ✅ Decision Tree (9x faster) |
-| **Training Time** | 0.2884 seconds | 0.0726 seconds | ✅ Decision Tree (4x faster) |
+| **Load Time** | 0.0590 seconds | 0.0066 seconds | ✅ Decision Tree (8.9x faster) |
+| **Training Time** | 0.2884 seconds | 0.0726 seconds | ✅ Decision Tree (4.0x faster) |
 | **Evaluation Time** | 0.0013 seconds | 0.0002 seconds | ✅ Decision Tree (6.5x faster) |
 | **Total Time** | 0.3496 seconds | 0.0799 seconds | ✅ Decision Tree (4.4x faster) |
 
@@ -61,7 +61,7 @@ Both algorithms have been executed on the same dataset (`mimic_data.csv` with 10
 
 ### 2. Data Loading
 
-**Decision Tree Wins**: The Decision Tree shows 9x faster data loading.
+**Decision Tree Wins**: The Decision Tree shows 8.9x faster data loading.
 
 - **Logistic Regression**: 0.0590 seconds
   - Likely includes feature encoding/normalization
@@ -78,19 +78,22 @@ Both algorithms have been executed on the same dataset (`mimic_data.csv` with 10
 **Analysis of Results**:
 
 1. **Logistic Regression (100% accuracy)**:
-   - The extremely high accuracy with near-zero death rate (0.005%) suggests potential issues:
-     - Possible overfitting to training data
+   - ⚠️ **CRITICAL CONCERN**: The perfect 100% accuracy with near-zero death rate (0.005%) strongly suggests:
+     - **Data leakage** or **evaluation on training data** - The model may be tested on the same data it was trained on
+     - Possible overfitting to training data without proper train/test split
      - May be predicting "survival" for almost all cases
      - With gradient descent, might have converged to a solution that favors the majority class
    - The low death rate (0.005%) seems unrealistically optimistic for clinical data
+   - **Recommendation**: Implement proper train/test split to get realistic performance metrics
 
 2. **Decision Tree (49.55% accuracy)**:
-   - Approximately random performance (near 50% for binary classification)
+   - Performance close to random chance (50% for binary classification), though may still indicate some weak signal
    - Predicts 19.15% death rate, which may be more realistic for clinical data
-   - Possible explanations:
+   - The poor performance likely indicates implementation or methodology issues rather than truly random behavior:
      - Limited tree depth causing underfitting
      - Features may not have strong predictive power for tree-based splitting
      - May be overfitting to training set noise at leaf nodes
+     - Possible train/test split issues similar to Logistic Regression
 
 ### 4. Model Characteristics
 
