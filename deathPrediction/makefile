@@ -21,7 +21,7 @@ HYBRID_OMP_PTHREAD = hybrid_openmp_pthread_death_pred
 HYBRID_TRIPLE = hybrid_mpi_openmp_pthread_death_pred
 RUNNER = comparison_runner
 
-# Default target (excluding CUDA since it requires special hardware)
+# Default target (excluding CUDA due to NVIDIA GPU hardware dependency)
 all: $(SERIAL) $(OPENMP) $(PTHREAD) $(MPI) $(HYBRID_OMP_MPI) $(HYBRID_PTHREAD_MPI) $(HYBRID_OMP_PTHREAD) $(HYBRID_TRIPLE) $(RUNNER)
 
 # Target to build all including CUDA (only if nvcc is available)
