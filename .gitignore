@@ -3,6 +3,7 @@ deathPrediction/serial_death_pred
 deathPrediction/openmp_death_pred
 deathPrediction/pthread_death_pred
 deathPrediction/mpi_death_pred
+deathPrediction/cuda_death_pred
 deathPrediction/hybrid_openmp_mpi_death_pred
 deathPrediction/hybrid_pthread_mpi_death_pred
 deathPrediction/hybrid_openmp_pthread_death_pred

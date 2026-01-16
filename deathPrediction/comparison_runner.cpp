@@ -192,6 +192,18 @@ void generatePerformanceReport(const vector<TimingResult>& results, double seria
     report << "   - Pthreads: Low-level thread control, efficient for fine-tuned performance\n";
     report << "   - MPI: Distributed memory, suitable for cluster computing\n";
     
+    // Check if CUDA results are included
+    bool hasCuda = false;
+    for (const auto& r : results) {
+        if (r.implementation == "CUDA") {
+            hasCuda = true;
+            break;
+        }
+    }
+    if (hasCuda) {
+        report << "   - CUDA: GPU acceleration, exceptional speedup for large datasets\n";
+    }
+    
     report.close();
     cout << "\nDetailed performance report saved to: performance_report.txt" << endl;
 }
@@ -204,7 +216,8 @@ int main(int argc, char* argv[]) {
         cerr << "  2. Run OpenMP parallel implementation" << endl;
         cerr << "  3. Run Pthreads parallel implementation" << endl;
         cerr << "  4. Run MPI parallel implementation" << endl;
-        cerr << "  5. Compare performance metrics" << endl;
+        cerr << "  5. Run CUDA parallel implementation (if available)" << endl;
+        cerr << "  6. Compare performance metrics" << endl;
         return 1;
     }
     
@@ -219,7 +232,7 @@ int main(int argc, char* argv[]) {
     cout << "========================================================================================================" << endl;
     
     // Run Serial Implementation
-    cout << "\n[1/4] Running Serial Implementation..." << endl;
+    cout << "\n[1/5] Running Serial Implementation..." << endl;
     string cmd1 = "./serial_death_pred " + dataFile;
     int ret1 = system(cmd1.c_str());
     if (ret1 != 0) {
@@ -228,7 +241,7 @@ int main(int argc, char* argv[]) {
     }
     
     // Run OpenMP Implementation
-    cout << "\n[2/4] Running OpenMP Implementation..." << endl;
+    cout << "\n[2/5] Running OpenMP Implementation..." << endl;
     string cmd2 = "./openmp_death_pred " + dataFile;
     int ret2 = system(cmd2.c_str());
     if (ret2 != 0) {
@@ -237,7 +250,7 @@ int main(int argc, char* argv[]) {
     }
     
     // Run Pthreads Implementation
-    cout << "\n[3/4] Running Pthreads Implementation..." << endl;
+    cout << "\n[3/5] Running Pthreads Implementation..." << endl;
     string cmd3 = "./pthread_death_pred " + dataFile + " " + numThreads;
     int ret3 = system(cmd3.c_str());
     if (ret3 != 0) {
@@ -246,12 +259,34 @@ int main(int argc, char* argv[]) {
     }
     
     // Run MPI Implementation
-    cout << "\n[4/4] Running MPI Implementation..." << endl;
-    string cmd4 = "mpirun -np " + numThreads + " ./mpi_death_pred " + dataFile;
+    cout << "\n[4/5] Running MPI Implementation..." << endl;
+    string cmd4 = "mpirun --oversubscribe -np " + numThreads + " ./mpi_death_pred " + dataFile;
     int ret4 = system(cmd4.c_str());
     if (ret4 != 0) {
         cerr << "Error running MPI implementation. Make sure it's compiled." << endl;
         cerr << "Compile with: mpic++ -o mpi_death_pred mpi_death_pred.cpp -std=c++11" << endl;
+    }
+    
+    // Run CUDA Implementation (optional - only if available)
+    cout << "\n[5/5] Running CUDA Implementation..." << endl;
+    bool cudaAvailable = false;
+    // Check if CUDA executable exists
+    ifstream cudaExeCheck("./cuda_death_pred");
+    if (cudaExeCheck.good()) {
+        cudaExeCheck.close();
+        string cmd5 = "./cuda_death_pred " + dataFile;
+        int ret5 = system(cmd5.c_str());
+        if (ret5 == 0) {
+            cudaAvailable = true;
+        } else {
+            cerr << "CUDA executable exists but failed to run. This is expected on systems without NVIDIA GPU." << endl;
+            cerr << "CUDA results will be excluded from comparison." << endl;
+        }
+    } else {
+        cudaExeCheck.close();
+        cerr << "CUDA implementation not compiled. This is expected on systems without CUDA Toolkit." << endl;
+        cerr << "To compile: nvcc -std=c++11 -O3 -o cuda_death_pred cuda_death_pred.cu" << endl;
+        cerr << "CUDA results will be excluded from comparison." << endl;
     }
     
     // Parse results
@@ -262,6 +297,18 @@ int main(int argc, char* argv[]) {
         results.push_back(parseTimingFile("timing_openmp.txt", "OpenMP"));
         results.push_back(parseTimingFile("timing_pthread.txt", "Pthreads"));
         results.push_back(parseTimingFile("timing_mpi.txt", "MPI"));
+        
+        // Add CUDA results if available
+        if (cudaAvailable) {
+            ifstream cudaTimingCheck("timing_cuda.txt");
+            if (cudaTimingCheck.good()) {
+                cudaTimingCheck.close();
+                results.push_back(parseTimingFile("timing_cuda.txt", "CUDA"));
+            } else {
+                cudaTimingCheck.close();
+                cerr << "\nWarning: CUDA timing file not found despite successful execution." << endl;
+            }
+        }
     } catch (const exception& e) {
         cerr << "\nError parsing timing files: " << e.what() << endl;
         cerr << "Make sure all implementations ran successfully." << endl;
