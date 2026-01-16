@@ -64,6 +64,14 @@ Predicted Death Rate: 19.15%
 
 ## Comparison with Logistic Regression
 
+For a comprehensive comparison with actual execution results, see **[ALGORITHM_COMPARISON.md](ALGORITHM_COMPARISON.md)** which includes:
+- Detailed performance metrics from actual runs
+- Execution time analysis (Decision Tree is 4.4x faster overall)
+- Accuracy comparison and analysis
+- Use case recommendations
+
+Quick comparison summary:
+
 | Aspect | Logistic Regression | Decision Tree |
 |--------|-------------------|---------------|
 | **Model Type** | Linear | Non-linear |
