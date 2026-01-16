@@ -14,6 +14,8 @@ This project implements multiple machine learning algorithms to predict patient 
 1. **Logistic Regression** - Binary classification using gradient descent optimization
 2. **Decision Tree** - Tree-based classification using entropy and information gain
 
+For detailed information about the Decision Tree implementation, see [Decision Tree Documentation](deathPrediction/DECISION_TREE_README.md).
+
 ## Implementations
 
 ### Basic Parallel Implementations
