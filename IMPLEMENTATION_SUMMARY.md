@@ -1,4 +1,70 @@
-# CUDA Performance Comparison Implementation - Summary
+# Implementation Summary
+
+## Overview
+
+This document summarises all major implementation milestones in the ParallelMMIC project, covering the progressive addition of machine learning algorithms and parallel execution strategies for patient mortality prediction on the MIMIC clinical dataset.
+
+---
+
+# Part 1 – Gradient Boosting Implementation
+
+## Overview
+
+Added two new C++ implementations of a Gradient Boosting classifier (logistic loss) for death-rate prediction: a serial baseline and an OpenMP-parallelised version.
+
+## What Was Accomplished
+
+### 1. Serial Gradient Boosting (`serial_gradient_boosting_death_pred.cpp`)
+
+**Algorithm – Gradient Boosting with Logistic Loss**
+
+- Initialises prediction with the log-odds of the training-set mean label (clamped to avoid `log(0)`).
+- Fits `numTrees = 100` shallow **regression trees** (max depth = 3, min samples = 5) to the pseudo-residuals `y – sigmoid(F)` in sequence.
+- Updates running log-odds predictions after each tree: `F[i] += lr × tree.predict(data[i])`.
+- Supports three features for splitting: `ethnicity` (exact-match categorical), `gender` (exact-match categorical), and `icd9Code1` (threshold `≤ value`).
+- Best split chosen by **weighted variance reduction** (MSE-based information gain).
+- 80 / 20 train / test split on the MIMIC dataset.
+- Outputs accuracy (%) and predicted death rate (%), and saves all timings to `timing_gb_serial.txt`.
+
+**Key classes / functions:**
+
+| Symbol | Description |
+|---|---|
+| `RegressionTreeNode` | Tree node storing split info or leaf value |
+| `RegressionTree` | Shallow regression tree (depth ≤ 3) with `train` / `predict` |
+| `GradientBoostingClassifier` | Boosting ensemble: `train`, `predictProba`, `predict`, `calculateAccuracy`, `calculateDeathRate` |
+| `loadData` | CSV parser shared with other implementations |
+
+---
+
+### 2. OpenMP Gradient Boosting (`openmp_gradient_boosting_death_pred.cpp`)
+
+Mirrors the serial implementation but exploits **data-level parallelism** with OpenMP:
+
+| Parallelised section | OpenMP construct |
+|---|---|
+| Initial positive-count reduction | `#pragma omp parallel for reduction(+:positiveCount)` |
+| Pseudo-residual computation per boosting round | `#pragma omp parallel for schedule(static)` |
+| Prediction update per boosting round | `#pragma omp parallel for schedule(static)` |
+| Accuracy counting on test set | `#pragma omp parallel for reduction(+:correct)` |
+| Death-rate accumulation on test set | `#pragma omp parallel for reduction(+:total)` |
+
+Tree construction itself remains sequential because each level depends on the previous level's partition. Timing is saved to `timing_gb_openmp.txt`.
+
+**Build & run:**
+```bash
+make gb_serial           # serial implementation
+make gb_openmp           # OpenMP implementation
+
+./serial_gradient_boosting_death_pred mimic_data.csv
+
+export OMP_NUM_THREADS=4
+./openmp_gradient_boosting_death_pred mimic_data.csv
+```
+
+---
+
+# Part 2 – CUDA Performance Comparison Implementation
 
 ## Overview
 
@@ -219,3 +285,143 @@ The implementation is production-ready and provides valuable insights into CUDA'
 **Total Development Time:** ~2 hours  
 **Commits:** 3 commits  
 **Lines Changed:** ~489 lines added, 9 modified
+
+---
+
+# Part 3 – Transformer Implementation
+
+## Overview
+
+Added a Python/PyTorch **tabular transformer** (`transformer_death_pred.py`) that learns rich feature interactions through multi-head self-attention for hospital mortality prediction.
+
+## What Was Accomplished
+
+### 1. Model Architecture (`ClinicalTransformer`)
+
+```
+Categorical features  →  Per-feature Embedding layers
+Continuous features   →  Linear projection
+[CLS] token           →  Learnable classification token
+                         ↓
+Concatenate all tokens  →  (B, 5, embed_dim)
+Add learnable positional encodings
+                         ↓
+Transformer encoder  ×  num_layers
+  (Multi-head self-attention + Feed-forward + Pre-LayerNorm)
+                         ↓
+Extract [CLS] output  →  LayerNorm → Linear → GELU → Dropout → Linear → logit
+```
+
+**Feature tokens (5 total):**
+
+| Token | Source | Encoding |
+|---|---|---|
+| `[CLS]` | Learnable parameter | – |
+| `ethnicity` | `eth_embed` (Embedding table) | Integer vocab index |
+| `gender` | `gen_embed` (Embedding table) | Integer vocab index |
+| `icd9_code1` | `icd_embed` (Embedding table) | Integer vocab index |
+| `age` | `cont_proj` (Linear layer) | z-score normalised scalar |
+
+**Default hyperparameters:**
+
+| Parameter | Default | CLI flag |
+|---|---|---|
+| Epochs | 50 | `--epochs` |
+| Batch size | 64 | `--batch-size` |
+| Learning rate | 1e-3 | `--lr` |
+| Attention heads | 4 | `--heads` |
+| Transformer layers | 2 | `--layers` |
+| Embedding dimension | 64 | `--embed-dim` |
+| Dropout | 0.1 | `--dropout` |
+| Random seed | 42 | `--seed` |
+
+---
+
+### 2. Training Pipeline
+
+- **Data loading**: `load_data()` parses the MIMIC CSV using `csv.DictReader`; fields used are `HOSPITAL_EXPIRE_FLAG`, `AGE_AT_ADMISSION`, `ICD9_CODE_1`, `ETHNICITY`, `GENDER`.
+- **Vocabulary / normalisation**: `build_vocab()` builds integer lookup tables for all categorical features and computes mean/std for age normalisation.
+- **Dataset**: `ClinicalDataset` (PyTorch `Dataset`) wraps encoded records; 80 / 20 random train / test split via `torch.utils.data.random_split`.
+- **Loss**: `BCEWithLogitsLoss` with `pos_weight = neg_count / pos_count` to handle class imbalance (minority death class).
+- **Optimiser**: `AdamW` with weight decay 1e-4.
+- **Scheduler**: `CosineAnnealingLR` over all epochs.
+- **Device**: Automatically selects CUDA GPU if available, otherwise CPU.
+
+---
+
+### 3. Evaluation Metrics
+
+The `evaluate()` function computes the following on the test set:
+
+| Metric | Description |
+|---|---|
+| Accuracy | Fraction of correct binary predictions (threshold 0.5) |
+| Predicted Death Rate | Mean predicted probability of death |
+| Precision | TP / (TP + FP) |
+| Recall | TP / (TP + FN) |
+| F1 Score | Harmonic mean of Precision and Recall |
+
+Results are printed to stdout and persisted to `timing_transformer.txt`.  
+Model weights are saved to `transformer_model.pt` after training.
+
+---
+
+### 4. Graceful PyTorch Handling
+
+```python
+try:
+    import torch
+    ...
+    TORCH_AVAILABLE = True
+except ImportError:
+    TORCH_AVAILABLE = False
+```
+
+If PyTorch is not installed the script prints a clear installation message and exits with a non-zero status code, avoiding cryptic import errors.
+
+---
+
+### 5. Files Added
+
+| File | Description |
+|---|---|
+| `deathPrediction/transformer_death_pred.py` | Full transformer implementation (~463 lines) |
+| `deathPrediction/requirements.txt` | Python dependencies (`torch>=2.0`, `numpy`, `pandas`, etc.) |
+| `deathPrediction/transformer_model.pt` | Saved model weights (git-tracked for reference) |
+
+---
+
+## How to Use
+
+```bash
+# Install Python dependencies
+pip install -r deathPrediction/requirements.txt
+
+# Run with defaults (50 epochs, CPU or GPU autodetected)
+python3 transformer_death_pred.py mimic_data.csv
+
+# Custom training run
+python3 transformer_death_pred.py mimic_data.csv \
+    --epochs 100 --lr 5e-4 --heads 4 --layers 2 --embed-dim 64
+
+# View timing results
+cat timing_transformer.txt
+```
+
+---
+
+## Algorithm Summary and Comparison
+
+| Algorithm | Type | Parallelism | Language | Features | Extra Metrics |
+|---|---|---|---|---|---|
+| Logistic Regression (serial) | Linear | None | C++ | ethnicity, gender, ICD9 | accuracy, death rate |
+| Logistic Regression (OpenMP/MPI/Pthread/CUDA) | Linear | Data parallel | C++ | ethnicity, gender, ICD9 | accuracy, death rate |
+| Decision Tree (serial) | Non-linear tree | None | C++ | ethnicity, gender, ICD9 | accuracy, death rate |
+| **Gradient Boosting (serial)** | Ensemble of regression trees | None | C++ | ethnicity, gender, ICD9 | accuracy, death rate |
+| **Gradient Boosting (OpenMP)** | Ensemble of regression trees | Residuals + eval parallel | C++ | ethnicity, gender, ICD9 | accuracy, death rate |
+| **Transformer** | Deep learning (self-attention) | GPU / DataLoader | Python/PyTorch | ethnicity, gender, ICD9, age | accuracy, death rate, precision, recall, F1 |
+
+---
+
+**Implementation Date:** April 3, 2026
+
