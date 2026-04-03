@@ -1,6 +1,6 @@
 # ParallelMMIC
 
-A comprehensive implementation comparing serial and parallel approaches (OpenMP, Pthreads, MPI, and Hybrid combinations) for death rate prediction using machine learning algorithms (Logistic Regression and Decision Tree) on MIMIC clinical dataset.
+A comprehensive implementation comparing serial and parallel approaches (OpenMP, Pthreads, MPI, CUDA, and Hybrid combinations) for death rate prediction using machine learning algorithms (Logistic Regression, Decision Tree, **Gradient Boosting**, and **Transformer**) on the MIMIC clinical dataset.
 
 ## Overview
 
@@ -13,6 +13,8 @@ This project implements multiple machine learning algorithms to predict patient 
 
 1. **Logistic Regression** - Binary classification using gradient descent optimization
 2. **Decision Tree** - Tree-based classification using entropy and information gain
+3. **Gradient Boosting** - Ensemble of shallow regression trees fitted to pseudo-residuals (logistic loss), with Serial and OpenMP-parallelised implementations
+4. **Transformer** - Tabular transformer using multi-head self-attention over feature embeddings (Python / PyTorch)
 
 **Algorithm Comparison Results**: See [Algorithm Comparison Document](deathPrediction/ALGORITHM_COMPARISON.md) for detailed performance analysis and results comparing both algorithms.
 
@@ -48,19 +50,23 @@ For detailed information about the Decision Tree implementation, see [Decision T
 
 ```
 deathPrediction/
-├── serial_death_pred.cpp                       # Serial Logistic Regression
-├── serial_decision_tree_death_pred.cpp         # Serial Decision Tree
-├── openmp_death_pred.cpp                       # OpenMP parallel implementation
-├── pthread_death_pred.cpp                      # Pthreads parallel implementation
-├── mpi_death_pred.cpp                          # MPI distributed implementation
-├── cuda_death_pred.cu                          # CUDA GPU-accelerated implementation
-├── hybrid_openmp_mpi_death_pred.cpp            # OpenMP+MPI hybrid
-├── hybrid_pthread_mpi_death_pred.cpp           # Pthread+MPI hybrid
-├── hybrid_openmp_pthread_death_pred.cpp        # OpenMP+Pthread hybrid
-├── hybrid_mpi_openmp_pthread_death_pred.cpp    # Triple hybrid (MPI+OpenMP+Pthread)
-├── comparison_runner.cpp                       # Performance comparison script
-├── makefile                                    # Build automation
-└── mimic_data.csv                             # Sample dataset
+├── serial_death_pred.cpp                           # Serial Logistic Regression
+├── serial_decision_tree_death_pred.cpp             # Serial Decision Tree
+├── serial_gradient_boosting_death_pred.cpp         # Serial Gradient Boosting
+├── openmp_gradient_boosting_death_pred.cpp         # OpenMP Gradient Boosting
+├── transformer_death_pred.py                       # Transformer (Python/PyTorch)
+├── openmp_death_pred.cpp                           # OpenMP parallel implementation
+├── pthread_death_pred.cpp                          # Pthreads parallel implementation
+├── mpi_death_pred.cpp                              # MPI distributed implementation
+├── cuda_death_pred.cu                              # CUDA GPU-accelerated implementation
+├── hybrid_openmp_mpi_death_pred.cpp                # OpenMP+MPI hybrid
+├── hybrid_pthread_mpi_death_pred.cpp               # Pthread+MPI hybrid
+├── hybrid_openmp_pthread_death_pred.cpp            # OpenMP+Pthread hybrid
+├── hybrid_mpi_openmp_pthread_death_pred.cpp        # Triple hybrid (MPI+OpenMP+Pthread)
+├── comparison_runner.cpp                           # Performance comparison script
+├── makefile                                        # Build automation
+├── requirements.txt                                # Python dependencies
+└── mimic_data.csv                                  # Sample dataset
 ```
 
 ## Requirements
@@ -70,6 +76,7 @@ deathPrediction/
 - **Pthreads**: POSIX threads library (pthread)
 - **MPI**: OpenMPI or MPICH implementation
 - **CUDA** (optional): NVIDIA CUDA Toolkit with nvcc compiler for GPU acceleration
+- **Python 3 + PyTorch** (for Transformer): `pip install -r deathPrediction/requirements.txt`
 
 ## Installation
 
@@ -112,7 +119,9 @@ Build individual implementations:
 ```bash
 make serial              # Build serial Logistic Regression
 make dt_serial           # Build serial Decision Tree
-make openmp              # Build OpenMP version
+make gb_serial           # Build serial Gradient Boosting
+make gb_openmp           # Build OpenMP Gradient Boosting
+make openmp              # Build OpenMP version (Logistic Regression)
 make pthread             # Build Pthread version
 make mpi                 # Build MPI version
 make cuda                # Build CUDA version (requires CUDA Toolkit)
@@ -141,7 +150,31 @@ make clean
 ./serial_decision_tree_death_pred mimic_data.csv
 ```
 
-**OpenMP:**
+**Serial Gradient Boosting:**
+```bash
+./serial_gradient_boosting_death_pred mimic_data.csv
+```
+
+**OpenMP Gradient Boosting:**
+```bash
+export OMP_NUM_THREADS=4
+./openmp_gradient_boosting_death_pred mimic_data.csv
+```
+
+**Transformer (Python/PyTorch):**
+```bash
+# Install Python dependencies first
+pip install -r requirements.txt
+
+# Run with default hyperparameters (50 epochs)
+python3 transformer_death_pred.py mimic_data.csv
+
+# Customise training
+python3 transformer_death_pred.py mimic_data.csv \
+    --epochs 100 --lr 5e-4 --heads 4 --layers 2 --embed-dim 64
+```
+
+**OpenMP (Logistic Regression):**
 ```bash
 ./openmp_death_pred mimic_data.csv
 # Set number of threads (optional)
@@ -238,8 +271,8 @@ cd deathPrediction
 |-----------|----------------|------------|----------|
 | **Logistic Regression** | Linear model using gradient descent | Simple, fast, probabilistic outputs | When feature relationships are linear |
 | **Decision Tree** | Tree-based using entropy/information gain | Interpretable, handles non-linear patterns | When interpretability is important |
-
-Both algorithms are implemented with the same parallel paradigms for performance comparison.
+| **Gradient Boosting** | Ensemble of regression trees on pseudo-residuals | Strong predictive power, handles interactions | When accuracy matters most (C++, parallelised) |
+| **Transformer** | Tabular self-attention over feature tokens | Captures feature interactions via attention | Flexible deep learning baseline (Python/PyTorch) |
 
 ### Expected Speedup Patterns
 

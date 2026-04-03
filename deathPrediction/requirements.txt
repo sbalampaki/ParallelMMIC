@@ -1,0 +1,11 @@
+# Python dependencies for ParallelMMIC clinical prediction scripts
+# Install with: pip install -r requirements.txt
+
+# Core data science stack
+numpy>=1.24
+pandas>=2.0
+matplotlib>=3.7
+seaborn>=0.12
+
+# Deep learning (required for transformer_death_pred.py)
+torch>=2.0
