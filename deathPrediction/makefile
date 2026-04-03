@@ -24,8 +24,12 @@ RUNNER = comparison_runner
 # Decision Tree executables
 DT_SERIAL = serial_decision_tree_death_pred
 
+# Gradient Boosting executables
+GB_SERIAL = serial_gradient_boosting_death_pred
+GB_OPENMP = openmp_gradient_boosting_death_pred
+
 # Default target (excluding CUDA due to NVIDIA GPU hardware dependency)
-all: $(SERIAL) $(OPENMP) $(PTHREAD) $(MPI) $(HYBRID_OMP_MPI) $(HYBRID_PTHREAD_MPI) $(HYBRID_OMP_PTHREAD) $(HYBRID_TRIPLE) $(RUNNER) $(DT_SERIAL)
+all: $(SERIAL) $(OPENMP) $(PTHREAD) $(MPI) $(HYBRID_OMP_MPI) $(HYBRID_PTHREAD_MPI) $(HYBRID_OMP_PTHREAD) $(HYBRID_TRIPLE) $(RUNNER) $(DT_SERIAL) $(GB_SERIAL) $(GB_OPENMP)
 
 # Target to build all including CUDA (only if nvcc is available)
 all_with_cuda: all
@@ -124,6 +128,16 @@ $(DT_SERIAL): serial_decision_tree_death_pred.cpp
 	@echo "Compiling Decision Tree serial implementation..."
 	$(CXX) $(CXXFLAGS) -o $(DT_SERIAL) serial_decision_tree_death_pred.cpp
 
+# Gradient Boosting - Serial implementation
+$(GB_SERIAL): serial_gradient_boosting_death_pred.cpp
+	@echo "Compiling Gradient Boosting serial implementation..."
+	$(CXX) $(CXXFLAGS) -o $(GB_SERIAL) serial_gradient_boosting_death_pred.cpp
+
+# Gradient Boosting - OpenMP implementation
+$(GB_OPENMP): openmp_gradient_boosting_death_pred.cpp
+	@echo "Compiling Gradient Boosting OpenMP implementation..."
+	$(CXX) $(CXXFLAGS) $(OMPFLAGS) -o $(GB_OPENMP) openmp_gradient_boosting_death_pred.cpp
+
 # Individual targets
 serial: $(SERIAL)
 openmp: $(OPENMP)
@@ -136,11 +150,13 @@ hybrid_omp_pthread: $(HYBRID_OMP_PTHREAD)
 hybrid_triple: $(HYBRID_TRIPLE)
 runner: $(RUNNER)
 dt_serial: $(DT_SERIAL)
+gb_serial: $(GB_SERIAL)
+gb_openmp: $(GB_OPENMP)
 
 # Clean build artifacts
 clean:
 	@echo "Cleaning build artifacts..."
-	rm -f $(SERIAL) $(OPENMP) $(PTHREAD) $(MPI) $(CUDA) $(HYBRID_OMP_MPI) $(HYBRID_PTHREAD_MPI) $(HYBRID_OMP_PTHREAD) $(HYBRID_TRIPLE) $(RUNNER) $(DT_SERIAL)
+	rm -f $(SERIAL) $(OPENMP) $(PTHREAD) $(MPI) $(CUDA) $(HYBRID_OMP_MPI) $(HYBRID_PTHREAD_MPI) $(HYBRID_OMP_PTHREAD) $(HYBRID_TRIPLE) $(RUNNER) $(DT_SERIAL) $(GB_SERIAL) $(GB_OPENMP)
 	rm -f timing_*.txt performance_report.txt
 	@echo "Clean complete."
 
@@ -171,6 +187,9 @@ help:
 	@echo "  make hybrid_omp_pthread     - Build only OpenMP+Pthread hybrid"
 	@echo "  make hybrid_triple          - Build only MPI+OpenMP+Pthread triple hybrid"
 	@echo "  make runner                 - Build only comparison runner"
+	@echo "  make dt_serial              - Build only Decision Tree serial implementation"
+	@echo "  make gb_serial              - Build only Gradient Boosting serial implementation"
+	@echo "  make gb_openmp              - Build only Gradient Boosting OpenMP implementation"
 	@echo "  make clean                  - Remove all build artifacts"
 	@echo "  make test                   - Build and run tests with mimic_data.csv"
 	@echo "  make help                   - Show this help message"
@@ -181,8 +200,9 @@ help:
 	@echo "  - POSIX threads library (pthread)"
 	@echo "  - MPI implementation (OpenMPI or MPICH)"
 	@echo "  - CUDA Toolkit with nvcc (optional, for CUDA implementation)"
+	@echo "  - Python 3 + PyTorch (for transformer: python transformer_death_pred.py)"
 	@echo ""
 	@echo "Data file format (CSV):"
 	@echo "  SUBJECT_ID,HADM_ID,HOSPITAL,EXPIRE_FLAG,ADMITTIME,ETHNICITY,GENDER,DOB,AGE_AT_ADMISSION,ICD9_CODE_1"
 
-.PHONY: all all_with_cuda serial openmp pthread mpi cuda hybrid_omp_mpi hybrid_pthread_mpi hybrid_omp_pthread hybrid_triple runner clean test help
+.PHONY: all all_with_cuda serial openmp pthread mpi cuda hybrid_omp_mpi hybrid_pthread_mpi hybrid_omp_pthread hybrid_triple runner dt_serial gb_serial gb_openmp clean test help
