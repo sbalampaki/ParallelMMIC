@@ -227,7 +227,7 @@ def fig_training_time(data: dict, out_dir: str):
         )
         if i > 0:
             ratio = t / baseline
-            label = f"{ratio:.2f}× {'slower' if ratio > 1 else 'faster'}"
+            label = f"{ratio:.2f}× as long"
             ax.text(
                 bar.get_x() + bar.get_width() / 2,
                 bar.get_height() * 0.5,
@@ -451,21 +451,28 @@ def fig_comprehensive(data: dict, out_dir: str):
     # ── Panel (1,1): Transformer quality metrics ──────────────────────────────
     ax = axes[1, 1]
     t_data = data["transformer"]
-    t_labels = ["Accuracy", "Precision", "Recall", "F1"]
-    t_vals = [
-        t_data["accuracy"] * 100,
-        (t_data["precision"] or 0) * 100,
-        (t_data["recall"] or 0) * 100,
-        (t_data["f1"] or 0) * 100,
+    t_metric_defs = [
+        ("Accuracy",  t_data.get("accuracy")),
+        ("Precision", t_data.get("precision")),
+        ("Recall",    t_data.get("recall")),
+        ("F1 Score",  t_data.get("f1")),
     ]
-    t_colors = ["#2ecc71", "#3498db", "#9b59b6", "#e74c3c"]
-    ax.bar(t_labels, t_vals, color=t_colors, edgecolor="black")
-    ax.set_ylim(0, 115)
+    # Only plot metrics that are available (not None)
+    available = [(lbl, v * 100) for lbl, v in t_metric_defs if v is not None]
+    t_labels_plot, t_vals_plot = zip(*available) if available else ([], [])
+    t_colors_all = ["#2ecc71", "#3498db", "#9b59b6", "#e74c3c"]
+    t_colors_plot = t_colors_all[: len(t_vals_plot)]
+    if t_vals_plot:
+        ax.bar(t_labels_plot, t_vals_plot, color=t_colors_plot, edgecolor="black")
+        ax.set_ylim(0, 115)
+        for i, v in enumerate(t_vals_plot):
+            ax.text(i, v, f"{v:.1f}%", ha="center", va="bottom", fontsize=8)
+    else:
+        ax.text(0.5, 0.5, "No metrics available", ha="center", va="center",
+                transform=ax.transAxes, color="gray")
     ax.set_title("Transformer Quality Metrics", fontweight="bold")
     ax.set_ylabel("Score (%)", fontweight="bold")
     ax.grid(axis="y", alpha=0.3)
-    for i, v in enumerate(t_vals):
-        ax.text(i, v, f"{v:.1f}%", ha="center", va="bottom", fontsize=8)
 
     # ── Panel (1,2): Time-breakdown stacked ──────────────────────────────────
     ax = axes[1, 2]
