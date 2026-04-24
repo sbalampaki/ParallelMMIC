@@ -215,9 +215,10 @@ int main(int argc, char* argv[]) {
         cerr << "  1. Run serial implementation" << endl;
         cerr << "  2. Run OpenMP parallel implementation" << endl;
         cerr << "  3. Run Pthreads parallel implementation" << endl;
-        cerr << "  4. Run MPI parallel implementation" << endl;
-        cerr << "  5. Run CUDA parallel implementation (if available)" << endl;
-        cerr << "  6. Compare performance metrics" << endl;
+        cerr << "  4. Run MPI synchronous implementation" << endl;
+        cerr << "  5. Run MPI asynchronous implementation" << endl;
+        cerr << "  6. Run CUDA parallel implementation (if available)" << endl;
+        cerr << "  7. Compare performance metrics" << endl;
         return 1;
     }
     
@@ -259,16 +260,25 @@ int main(int argc, char* argv[]) {
     }
     
     // Run MPI Implementation
-    cout << "\n[4/5] Running MPI Implementation..." << endl;
+    cout << "\n[4/6] Running MPI (Synchronous) Implementation..." << endl;
     string cmd4 = "mpirun --oversubscribe -np " + numThreads + " ./mpi_death_pred " + dataFile;
     int ret4 = system(cmd4.c_str());
     if (ret4 != 0) {
         cerr << "Error running MPI implementation. Make sure it's compiled." << endl;
         cerr << "Compile with: mpic++ -o mpi_death_pred mpi_death_pred.cpp -std=c++11" << endl;
     }
-    
+
+    // Run Async MPI Implementation
+    cout << "\n[5/6] Running MPI (Asynchronous) Implementation..." << endl;
+    string cmd_async = "mpirun --oversubscribe -np " + numThreads + " ./async_mpi_death_pred " + dataFile;
+    int ret_async = system(cmd_async.c_str());
+    if (ret_async != 0) {
+        cerr << "Error running async MPI implementation. Make sure it's compiled." << endl;
+        cerr << "Compile with: mpic++ -o async_mpi_death_pred async_mpi_death_pred.cpp -std=c++11" << endl;
+    }
+
     // Run CUDA Implementation (optional - only if available)
-    cout << "\n[5/5] Running CUDA Implementation..." << endl;
+    cout << "\n[6/6] Running CUDA Implementation..." << endl;
     bool cudaAvailable = false;
     // Check if CUDA executable exists
     ifstream cudaExeCheck("./cuda_death_pred");
@@ -296,8 +306,18 @@ int main(int argc, char* argv[]) {
         results.push_back(parseTimingFile("timing_serial.txt", "Serial"));
         results.push_back(parseTimingFile("timing_openmp.txt", "OpenMP"));
         results.push_back(parseTimingFile("timing_pthread.txt", "Pthreads"));
-        results.push_back(parseTimingFile("timing_mpi.txt", "MPI"));
-        
+        results.push_back(parseTimingFile("timing_mpi.txt", "MPI-Sync"));
+
+        // Add async MPI results if available
+        {
+            ifstream asyncCheck("timing_async_mpi.txt");
+            if (asyncCheck.good()) {
+                asyncCheck.close();
+                TimingResult asyncResult = parseTimingFile("timing_async_mpi.txt", "MPI-Async");
+                results.push_back(asyncResult);
+            }
+        }
+
         // Add CUDA results if available
         if (cudaAvailable) {
             ifstream cudaTimingCheck("timing_cuda.txt");
