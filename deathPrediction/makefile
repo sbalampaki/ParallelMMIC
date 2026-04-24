@@ -14,6 +14,7 @@ SERIAL = serial_death_pred
 OPENMP = openmp_death_pred
 PTHREAD = pthread_death_pred
 MPI = mpi_death_pred
+ASYNC_MPI = async_mpi_death_pred
 CUDA = cuda_death_pred
 HYBRID_OMP_MPI = hybrid_openmp_mpi_death_pred
 HYBRID_PTHREAD_MPI = hybrid_pthread_mpi_death_pred
@@ -29,7 +30,7 @@ GB_SERIAL = serial_gradient_boosting_death_pred
 GB_OPENMP = openmp_gradient_boosting_death_pred
 
 # Default target (excluding CUDA due to NVIDIA GPU hardware dependency)
-all: $(SERIAL) $(OPENMP) $(PTHREAD) $(MPI) $(HYBRID_OMP_MPI) $(HYBRID_PTHREAD_MPI) $(HYBRID_OMP_PTHREAD) $(HYBRID_TRIPLE) $(RUNNER) $(DT_SERIAL) $(GB_SERIAL) $(GB_OPENMP)
+all: $(SERIAL) $(OPENMP) $(PTHREAD) $(MPI) $(ASYNC_MPI) $(HYBRID_OMP_MPI) $(HYBRID_PTHREAD_MPI) $(HYBRID_OMP_PTHREAD) $(HYBRID_TRIPLE) $(RUNNER) $(DT_SERIAL) $(GB_SERIAL) $(GB_OPENMP)
 
 # Target to build all including CUDA (only if nvcc is available)
 all_with_cuda: all
@@ -87,6 +88,11 @@ $(MPI): mpi_death_pred.cpp
 	@echo "Compiling MPI implementation..."
 	$(MPICXX) $(CXXFLAGS) -o $(MPI) mpi_death_pred.cpp
 
+# Async MPI implementation
+$(ASYNC_MPI): async_mpi_death_pred.cpp
+	@echo "Compiling Async MPI implementation..."
+	$(MPICXX) $(CXXFLAGS) -o $(ASYNC_MPI) async_mpi_death_pred.cpp
+
 # CUDA implementation
 $(CUDA): cuda_death_pred.cu
 	@echo "Compiling CUDA implementation..."
@@ -143,6 +149,7 @@ serial: $(SERIAL)
 openmp: $(OPENMP)
 pthread: $(PTHREAD)
 mpi: $(MPI)
+async_mpi: $(ASYNC_MPI)
 cuda: $(CUDA)
 hybrid_omp_mpi: $(HYBRID_OMP_MPI)
 hybrid_pthread_mpi: $(HYBRID_PTHREAD_MPI)
@@ -156,7 +163,7 @@ gb_openmp: $(GB_OPENMP)
 # Clean build artifacts
 clean:
 	@echo "Cleaning build artifacts..."
-	rm -f $(SERIAL) $(OPENMP) $(PTHREAD) $(MPI) $(CUDA) $(HYBRID_OMP_MPI) $(HYBRID_PTHREAD_MPI) $(HYBRID_OMP_PTHREAD) $(HYBRID_TRIPLE) $(RUNNER) $(DT_SERIAL) $(GB_SERIAL) $(GB_OPENMP)
+	rm -f $(SERIAL) $(OPENMP) $(PTHREAD) $(MPI) $(ASYNC_MPI) $(CUDA) $(HYBRID_OMP_MPI) $(HYBRID_PTHREAD_MPI) $(HYBRID_OMP_PTHREAD) $(HYBRID_TRIPLE) $(RUNNER) $(DT_SERIAL) $(GB_SERIAL) $(GB_OPENMP)
 	rm -f timing_*.txt performance_report.txt
 	@echo "Clean complete."
 
@@ -205,4 +212,4 @@ help:
 	@echo "Data file format (CSV):"
 	@echo "  SUBJECT_ID,HADM_ID,HOSPITAL,EXPIRE_FLAG,ADMITTIME,ETHNICITY,GENDER,DOB,AGE_AT_ADMISSION,ICD9_CODE_1"
 
-.PHONY: all all_with_cuda serial openmp pthread mpi cuda hybrid_omp_mpi hybrid_pthread_mpi hybrid_omp_pthread hybrid_triple runner dt_serial gb_serial gb_openmp clean test help
+.PHONY: all all_with_cuda serial openmp pthread mpi async_mpi cuda hybrid_omp_mpi hybrid_pthread_mpi hybrid_omp_pthread hybrid_triple runner dt_serial gb_serial gb_openmp clean test help
