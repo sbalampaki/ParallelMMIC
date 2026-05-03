@@ -29,13 +29,24 @@ DT_SERIAL = serial_decision_tree_death_pred
 GB_SERIAL = serial_gradient_boosting_death_pred
 GB_OPENMP = openmp_gradient_boosting_death_pred
 
+# Random Forest executables
+RF_SERIAL          = serial_rf_death_pred
+RF_OPENMP          = openmp_rf_death_pred
+RF_PTHREAD         = pthread_rf_death_pred
+RF_MPI             = mpi_rf_death_pred
+RF_CUDA            = cuda_rf_death_pred
+RF_HYBRID_OMP_MPI  = hybrid_openmp_mpi_rf_death_pred
+RF_HYBRID_PTH_MPI  = hybrid_pthread_mpi_rf_death_pred
+RF_HYBRID_OMP_PTH  = hybrid_openmp_pthread_rf_death_pred
+RF_HYBRID_TRIPLE   = hybrid_triple_rf_death_pred
+
 # Default target (excluding CUDA due to NVIDIA GPU hardware dependency)
-all: $(SERIAL) $(OPENMP) $(PTHREAD) $(MPI) $(ASYNC_MPI) $(HYBRID_OMP_MPI) $(HYBRID_PTHREAD_MPI) $(HYBRID_OMP_PTHREAD) $(HYBRID_TRIPLE) $(RUNNER) $(DT_SERIAL) $(GB_SERIAL) $(GB_OPENMP)
+all: $(SERIAL) $(OPENMP) $(PTHREAD) $(MPI) $(ASYNC_MPI) $(HYBRID_OMP_MPI) $(HYBRID_PTHREAD_MPI) $(HYBRID_OMP_PTHREAD) $(HYBRID_TRIPLE) $(RUNNER) $(DT_SERIAL) $(GB_SERIAL) $(GB_OPENMP) $(RF_SERIAL) $(RF_OPENMP) $(RF_PTHREAD) $(RF_MPI) $(RF_HYBRID_OMP_MPI) $(RF_HYBRID_PTH_MPI) $(RF_HYBRID_OMP_PTH) $(RF_HYBRID_TRIPLE)
 
 # Target to build all including CUDA (only if nvcc is available)
 all_with_cuda: all
 	@if command -v nvcc >/dev/null 2>&1; then \
-		$(MAKE) $(CUDA); \
+		$(MAKE) $(CUDA) $(RF_CUDA); \
 	else \
 		echo "CUDA compiler (nvcc) not found. Skipping CUDA build."; \
 		echo "Install CUDA Toolkit to enable CUDA implementation."; \
@@ -144,6 +155,57 @@ $(GB_OPENMP): openmp_gradient_boosting_death_pred.cpp
 	@echo "Compiling Gradient Boosting OpenMP implementation..."
 	$(CXX) $(CXXFLAGS) $(OMPFLAGS) -o $(GB_OPENMP) openmp_gradient_boosting_death_pred.cpp
 
+# Random Forest - Serial implementation
+$(RF_SERIAL): serial_random_forest_death_pred.cpp
+	@echo "Compiling Random Forest serial implementation..."
+	$(CXX) $(CXXFLAGS) -o $(RF_SERIAL) serial_random_forest_death_pred.cpp
+
+# Random Forest - OpenMP implementation
+$(RF_OPENMP): openmp_random_forest_death_pred.cpp
+	@echo "Compiling Random Forest OpenMP implementation..."
+	$(CXX) $(CXXFLAGS) $(OMPFLAGS) -o $(RF_OPENMP) openmp_random_forest_death_pred.cpp
+
+# Random Forest - Pthreads implementation
+$(RF_PTHREAD): pthread_random_forest_death_pred.cpp
+	@echo "Compiling Random Forest Pthreads implementation..."
+	$(CXX) $(CXXFLAGS) $(PTHREADFLAGS) -o $(RF_PTHREAD) pthread_random_forest_death_pred.cpp
+
+# Random Forest - MPI implementation
+$(RF_MPI): mpi_random_forest_death_pred.cpp
+	@echo "Compiling Random Forest MPI implementation..."
+	$(MPICXX) $(CXXFLAGS) -o $(RF_MPI) mpi_random_forest_death_pred.cpp
+
+# Random Forest - CUDA implementation
+$(RF_CUDA): cuda_random_forest_death_pred.cu
+	@echo "Compiling Random Forest CUDA implementation..."
+	@if command -v nvcc >/dev/null 2>&1; then \
+		$(NVCC) $(CUDAFLAGS) -o $(RF_CUDA) cuda_random_forest_death_pred.cu; \
+	else \
+		echo "Error: CUDA compiler (nvcc) not found."; \
+		echo "Please install CUDA Toolkit to build CUDA Random Forest implementation."; \
+		exit 1; \
+	fi
+
+# Random Forest - Hybrid OpenMP+MPI implementation
+$(RF_HYBRID_OMP_MPI): hybrid_openmp_mpi_random_forest_death_pred.cpp
+	@echo "Compiling Random Forest Hybrid OpenMP+MPI implementation..."
+	$(MPICXX) $(CXXFLAGS) $(OMPFLAGS) -o $(RF_HYBRID_OMP_MPI) hybrid_openmp_mpi_random_forest_death_pred.cpp
+
+# Random Forest - Hybrid Pthread+MPI implementation
+$(RF_HYBRID_PTH_MPI): hybrid_pthread_mpi_random_forest_death_pred.cpp
+	@echo "Compiling Random Forest Hybrid Pthread+MPI implementation..."
+	$(MPICXX) $(CXXFLAGS) $(PTHREADFLAGS) -o $(RF_HYBRID_PTH_MPI) hybrid_pthread_mpi_random_forest_death_pred.cpp
+
+# Random Forest - Hybrid OpenMP+Pthread implementation
+$(RF_HYBRID_OMP_PTH): hybrid_openmp_pthread_random_forest_death_pred.cpp
+	@echo "Compiling Random Forest Hybrid OpenMP+Pthread implementation..."
+	$(CXX) $(CXXFLAGS) $(OMPFLAGS) $(PTHREADFLAGS) -o $(RF_HYBRID_OMP_PTH) hybrid_openmp_pthread_random_forest_death_pred.cpp
+
+# Random Forest - Triple Hybrid MPI+OpenMP+Pthread implementation
+$(RF_HYBRID_TRIPLE): hybrid_mpi_openmp_pthread_random_forest_death_pred.cpp
+	@echo "Compiling Random Forest Triple Hybrid MPI+OpenMP+Pthread implementation..."
+	$(MPICXX) $(CXXFLAGS) $(OMPFLAGS) $(PTHREADFLAGS) -o $(RF_HYBRID_TRIPLE) hybrid_mpi_openmp_pthread_random_forest_death_pred.cpp
+
 # Individual targets
 serial: $(SERIAL)
 openmp: $(OPENMP)
@@ -159,11 +221,21 @@ runner: $(RUNNER)
 dt_serial: $(DT_SERIAL)
 gb_serial: $(GB_SERIAL)
 gb_openmp: $(GB_OPENMP)
+rf_serial: $(RF_SERIAL)
+rf_openmp: $(RF_OPENMP)
+rf_pthread: $(RF_PTHREAD)
+rf_mpi: $(RF_MPI)
+rf_cuda: $(RF_CUDA)
+rf_hybrid_omp_mpi: $(RF_HYBRID_OMP_MPI)
+rf_hybrid_pth_mpi: $(RF_HYBRID_PTH_MPI)
+rf_hybrid_omp_pth: $(RF_HYBRID_OMP_PTH)
+rf_hybrid_triple: $(RF_HYBRID_TRIPLE)
 
 # Clean build artifacts
 clean:
 	@echo "Cleaning build artifacts..."
 	rm -f $(SERIAL) $(OPENMP) $(PTHREAD) $(MPI) $(ASYNC_MPI) $(CUDA) $(HYBRID_OMP_MPI) $(HYBRID_PTHREAD_MPI) $(HYBRID_OMP_PTHREAD) $(HYBRID_TRIPLE) $(RUNNER) $(DT_SERIAL) $(GB_SERIAL) $(GB_OPENMP)
+	rm -f $(RF_SERIAL) $(RF_OPENMP) $(RF_PTHREAD) $(RF_MPI) $(RF_CUDA) $(RF_HYBRID_OMP_MPI) $(RF_HYBRID_PTH_MPI) $(RF_HYBRID_OMP_PTH) $(RF_HYBRID_TRIPLE)
 	rm -f timing_*.txt performance_report.txt
 	@echo "Clean complete."
 
@@ -197,6 +269,15 @@ help:
 	@echo "  make dt_serial              - Build only Decision Tree serial implementation"
 	@echo "  make gb_serial              - Build only Gradient Boosting serial implementation"
 	@echo "  make gb_openmp              - Build only Gradient Boosting OpenMP implementation"
+	@echo "  make rf_serial              - Build only Random Forest serial implementation"
+	@echo "  make rf_openmp              - Build only Random Forest OpenMP implementation"
+	@echo "  make rf_pthread             - Build only Random Forest Pthreads implementation"
+	@echo "  make rf_mpi                 - Build only Random Forest MPI implementation"
+	@echo "  make rf_cuda                - Build only Random Forest CUDA implementation (requires CUDA Toolkit)"
+	@echo "  make rf_hybrid_omp_mpi      - Build only Random Forest OpenMP+MPI hybrid"
+	@echo "  make rf_hybrid_pth_mpi      - Build only Random Forest Pthread+MPI hybrid"
+	@echo "  make rf_hybrid_omp_pth      - Build only Random Forest OpenMP+Pthread hybrid"
+	@echo "  make rf_hybrid_triple       - Build only Random Forest MPI+OpenMP+Pthread triple hybrid"
 	@echo "  make clean                  - Remove all build artifacts"
 	@echo "  make test                   - Build and run tests with mimic_data.csv"
 	@echo "  make help                   - Show this help message"
@@ -212,4 +293,4 @@ help:
 	@echo "Data file format (CSV):"
 	@echo "  SUBJECT_ID,HADM_ID,HOSPITAL,EXPIRE_FLAG,ADMITTIME,ETHNICITY,GENDER,DOB,AGE_AT_ADMISSION,ICD9_CODE_1"
 
-.PHONY: all all_with_cuda serial openmp pthread mpi async_mpi cuda hybrid_omp_mpi hybrid_pthread_mpi hybrid_omp_pthread hybrid_triple runner dt_serial gb_serial gb_openmp clean test help
+.PHONY: all all_with_cuda serial openmp pthread mpi async_mpi cuda hybrid_omp_mpi hybrid_pthread_mpi hybrid_omp_pthread hybrid_triple runner dt_serial gb_serial gb_openmp rf_serial rf_openmp rf_pthread rf_mpi rf_cuda rf_hybrid_omp_mpi rf_hybrid_pth_mpi rf_hybrid_omp_pth rf_hybrid_triple clean test help
