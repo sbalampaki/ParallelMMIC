@@ -423,5 +423,140 @@ cat timing_transformer.txt
 
 ---
 
-**Implementation Date:** April 3, 2026
+# Part 4 – Random Forest Implementation
+
+## Overview
+
+Added a complete C++ **Random Forest** classifier for hospital mortality prediction, with nine parallel variants mirroring the full set of implementations already present for Logistic Regression:
+
+| File | Parallelism |
+|---|---|
+| `serial_random_forest_death_pred.cpp` | None (baseline) |
+| `openmp_random_forest_death_pred.cpp` | OpenMP – tree-level parallelism |
+| `pthread_random_forest_death_pred.cpp` | Pthreads – one thread per tree batch |
+| `mpi_random_forest_death_pred.cpp` | MPI – each rank trains a tree subset |
+| `cuda_random_forest_death_pred.cu` | CUDA – GPU-parallel bootstrap + inference |
+| `hybrid_openmp_mpi_random_forest_death_pred.cpp` | OpenMP + MPI |
+| `hybrid_pthread_mpi_random_forest_death_pred.cpp` | Pthreads + MPI |
+| `hybrid_openmp_pthread_random_forest_death_pred.cpp` | OpenMP + Pthreads |
+| `hybrid_mpi_openmp_pthread_random_forest_death_pred.cpp` | MPI + OpenMP + Pthreads (triple hybrid) |
+
+---
+
+## Algorithm Design
+
+### Base Learner – `DecisionTree`
+
+Each decision tree in the forest:
+- Splits on three features: `ethnicity` (categorical exact-match), `gender` (categorical exact-match), and `icd9Code1` (integer exact-match).
+- At each node it randomly selects **2 out of 3 features** (√3 ≈ 2) to consider, providing the feature diversity that distinguishes Random Forest from bagged trees.
+- Split quality is measured by **entropy-based information gain**.
+- Configurable `maxDepth` (default 10) and `minSamplesSplit` (default 5).
+
+### Ensemble – `RandomForestClassifier`
+
+| Hyperparameter | Default | Description |
+|---|---|---|
+| `numTrees` | 50 | Number of decision trees |
+| `maxDepth` | 10 | Maximum tree depth |
+| `minSamplesSplit` | 5 | Minimum samples to attempt a split |
+| seed | 42 | RNG base seed; each tree uses `seed + t × 1 000 003` |
+
+Training:
+1. For each of the `numTrees` trees a **bootstrap sample** of size `n` (with replacement) is drawn.
+2. A `DecisionTree` is fitted on that bootstrap sample with random feature subsampling at every node.
+
+Inference:
+- **`predict`** – majority vote (returns 1 if ≥ half the trees vote for death).
+- **`predictProba`** – fraction of trees voting for death (used for the predicted death rate).
+
+---
+
+## Parallelism Strategies
+
+### OpenMP (`openmp_random_forest_death_pred.cpp`)
+
+Tree training is embarrassingly parallel – each tree is independent:
+
+```cpp
+#pragma omp parallel for schedule(dynamic)
+for (int t = 0; t < numTrees; t++) {
+    // per-tree bootstrap + fit
+}
+```
+
+Inference uses a parallel reduction:
+
+```cpp
+#pragma omp parallel for reduction(+:votes)
+for each tree: votes += tree->predict(p);
+```
+
+### Pthreads (`pthread_random_forest_death_pred.cpp`)
+
+The `numTrees` trees are divided into equal-sized batches, one batch per thread. Each thread holds its own `mt19937` seeded from `baseSeed + threadId` to avoid contention.
+
+### MPI (`mpi_random_forest_death_pred.cpp`)
+
+Each MPI rank trains `numTrees / numRanks` trees on the full training set (data is broadcast to all ranks). After training, each test sample is predicted locally and vote counts are reduced with `MPI_Reduce` to rank 0, which computes final accuracy and death rate.
+
+### Hybrid Variants
+
+| Variant | Strategy |
+|---|---|
+| OpenMP + MPI | MPI distributes tree subsets across nodes; OpenMP parallelises bootstrap sampling within each rank |
+| Pthreads + MPI | MPI distributes tree subsets; Pthreads parallelise within each rank |
+| OpenMP + Pthreads | OpenMP parallelises the outer tree loop; Pthreads handle inner per-node work |
+| Triple (MPI + OpenMP + Pthreads) | Three-level hierarchy: MPI → OpenMP → Pthreads |
+
+---
+
+## Build and Run
+
+```bash
+cd deathPrediction
+
+# Build all Random Forest variants
+make rf_serial rf_openmp rf_pthread rf_mpi
+
+# Optionally build CUDA variant (requires nvcc)
+make rf_cuda
+
+# Build hybrid variants
+make rf_hybrid_omp_mpi rf_hybrid_pth_mpi rf_hybrid_omp_pth rf_hybrid_triple
+
+# Or build everything at once
+make all
+
+# Run
+./serial_rf_death_pred mimic_data.csv
+
+export OMP_NUM_THREADS=4
+./openmp_rf_death_pred mimic_data.csv
+
+./pthread_rf_death_pred mimic_data.csv 4
+
+mpirun -np 4 ./mpi_rf_death_pred mimic_data.csv
+```
+
+Timing results are written to `timing_rf_serial.txt` (and `timing_rf_openmp.txt`, etc.) with the same key/value format used by all other implementations.
+
+---
+
+## Algorithm Summary (Updated)
+
+| Algorithm | Type | Parallelism | Language | Features | Extra Metrics |
+|---|---|---|---|---|---|
+| Logistic Regression (serial) | Linear | None | C++ | ethnicity, gender, ICD9 | accuracy, death rate |
+| Logistic Regression (OpenMP/MPI/Pthread/CUDA) | Linear | Data parallel | C++ | ethnicity, gender, ICD9 | accuracy, death rate |
+| Decision Tree (serial) | Non-linear tree | None | C++ | ethnicity, gender, ICD9 | accuracy, death rate |
+| Gradient Boosting (serial) | Ensemble regression trees | None | C++ | ethnicity, gender, ICD9 | accuracy, death rate |
+| Gradient Boosting (OpenMP) | Ensemble regression trees | Residuals + eval parallel | C++ | ethnicity, gender, ICD9 | accuracy, death rate |
+| **Random Forest (serial)** | Bagged decision trees + feature sampling | None | C++ | ethnicity, gender, ICD9 | accuracy, death rate |
+| **Random Forest (OpenMP/MPI/Pthread/CUDA/Hybrids)** | Bagged decision trees + feature sampling | Tree-level parallel | C++ | ethnicity, gender, ICD9 | accuracy, death rate |
+| Transformer | Deep learning (self-attention) | GPU / DataLoader | Python/PyTorch | ethnicity, gender, ICD9, age | accuracy, death rate, precision, recall, F1 |
+
+---
+
+**Implementation Date:** May 3, 2026
 

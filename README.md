@@ -14,7 +14,8 @@ This project implements multiple machine learning algorithms to predict patient 
 1. **Logistic Regression** - Binary classification using gradient descent optimization
 2. **Decision Tree** - Tree-based classification using entropy and information gain
 3. **Gradient Boosting** - Ensemble of shallow regression trees fitted to pseudo-residuals (logistic loss), with Serial and OpenMP-parallelised implementations
-4. **Transformer** - Tabular transformer using multi-head self-attention over feature embeddings (Python / PyTorch)
+4. **Random Forest** - Ensemble of decision trees with bootstrap sampling and random feature subsets, with Serial, OpenMP, Pthreads, MPI, CUDA, and all Hybrid implementations
+5. **Transformer** - Tabular transformer using multi-head self-attention over feature embeddings (Python / PyTorch)
 
 **Algorithm Comparison Results**: See [Algorithm Comparison Document](deathPrediction/ALGORITHM_COMPARISON.md) for detailed performance analysis and results comparing both algorithms.
 
@@ -50,23 +51,32 @@ For detailed information about the Decision Tree implementation, see [Decision T
 
 ```
 deathPrediction/
-├── serial_death_pred.cpp                           # Serial Logistic Regression
-├── serial_decision_tree_death_pred.cpp             # Serial Decision Tree
-├── serial_gradient_boosting_death_pred.cpp         # Serial Gradient Boosting
-├── openmp_gradient_boosting_death_pred.cpp         # OpenMP Gradient Boosting
-├── transformer_death_pred.py                       # Transformer (Python/PyTorch)
-├── openmp_death_pred.cpp                           # OpenMP parallel implementation
-├── pthread_death_pred.cpp                          # Pthreads parallel implementation
-├── mpi_death_pred.cpp                              # MPI distributed implementation
-├── cuda_death_pred.cu                              # CUDA GPU-accelerated implementation
-├── hybrid_openmp_mpi_death_pred.cpp                # OpenMP+MPI hybrid
-├── hybrid_pthread_mpi_death_pred.cpp               # Pthread+MPI hybrid
-├── hybrid_openmp_pthread_death_pred.cpp            # OpenMP+Pthread hybrid
-├── hybrid_mpi_openmp_pthread_death_pred.cpp        # Triple hybrid (MPI+OpenMP+Pthread)
-├── comparison_runner.cpp                           # Performance comparison script
-├── makefile                                        # Build automation
-├── requirements.txt                                # Python dependencies
-└── mimic_data.csv                                  # Sample dataset
+├── serial_death_pred.cpp                                    # Serial Logistic Regression
+├── serial_decision_tree_death_pred.cpp                      # Serial Decision Tree
+├── serial_gradient_boosting_death_pred.cpp                  # Serial Gradient Boosting
+├── openmp_gradient_boosting_death_pred.cpp                  # OpenMP Gradient Boosting
+├── serial_random_forest_death_pred.cpp                      # Serial Random Forest
+├── openmp_random_forest_death_pred.cpp                      # OpenMP Random Forest
+├── pthread_random_forest_death_pred.cpp                     # Pthreads Random Forest
+├── mpi_random_forest_death_pred.cpp                         # MPI Random Forest
+├── cuda_random_forest_death_pred.cu                         # CUDA Random Forest
+├── hybrid_openmp_mpi_random_forest_death_pred.cpp           # OpenMP+MPI Random Forest
+├── hybrid_pthread_mpi_random_forest_death_pred.cpp          # Pthread+MPI Random Forest
+├── hybrid_openmp_pthread_random_forest_death_pred.cpp       # OpenMP+Pthread Random Forest
+├── hybrid_mpi_openmp_pthread_random_forest_death_pred.cpp   # Triple Hybrid Random Forest
+├── transformer_death_pred.py                                # Transformer (Python/PyTorch)
+├── openmp_death_pred.cpp                                    # OpenMP parallel implementation (LR)
+├── pthread_death_pred.cpp                                   # Pthreads parallel implementation (LR)
+├── mpi_death_pred.cpp                                       # MPI distributed implementation (LR)
+├── cuda_death_pred.cu                                       # CUDA GPU-accelerated implementation (LR)
+├── hybrid_openmp_mpi_death_pred.cpp                         # OpenMP+MPI hybrid (LR)
+├── hybrid_pthread_mpi_death_pred.cpp                        # Pthread+MPI hybrid (LR)
+├── hybrid_openmp_pthread_death_pred.cpp                     # OpenMP+Pthread hybrid (LR)
+├── hybrid_mpi_openmp_pthread_death_pred.cpp                 # Triple hybrid (MPI+OpenMP+Pthread) (LR)
+├── comparison_runner.cpp                                    # Performance comparison script
+├── makefile                                                 # Build automation
+├── requirements.txt                                         # Python dependencies
+└── mimic_data.csv                                           # Sample dataset
 ```
 
 ## Requirements
@@ -121,6 +131,15 @@ make serial              # Build serial Logistic Regression
 make dt_serial           # Build serial Decision Tree
 make gb_serial           # Build serial Gradient Boosting
 make gb_openmp           # Build OpenMP Gradient Boosting
+make rf_serial           # Build serial Random Forest
+make rf_openmp           # Build OpenMP Random Forest
+make rf_pthread          # Build Pthreads Random Forest
+make rf_mpi              # Build MPI Random Forest
+make rf_cuda             # Build CUDA Random Forest (requires CUDA Toolkit)
+make rf_hybrid_omp_mpi   # Build OpenMP+MPI Random Forest hybrid
+make rf_hybrid_pth_mpi   # Build Pthread+MPI Random Forest hybrid
+make rf_hybrid_omp_pth   # Build OpenMP+Pthread Random Forest hybrid
+make rf_hybrid_triple    # Build triple-hybrid Random Forest
 make openmp              # Build OpenMP version (Logistic Regression)
 make pthread             # Build Pthread version
 make mpi                 # Build MPI version
@@ -159,6 +178,57 @@ make clean
 ```bash
 export OMP_NUM_THREADS=4
 ./openmp_gradient_boosting_death_pred mimic_data.csv
+```
+
+### Random Forest Implementations
+
+**Serial Random Forest:**
+```bash
+./serial_rf_death_pred mimic_data.csv
+```
+
+**OpenMP Random Forest:**
+```bash
+export OMP_NUM_THREADS=4
+./openmp_rf_death_pred mimic_data.csv
+```
+
+**Pthreads Random Forest:**
+```bash
+./pthread_rf_death_pred mimic_data.csv 4
+```
+
+**MPI Random Forest:**
+```bash
+mpirun -np 4 ./mpi_rf_death_pred mimic_data.csv
+```
+
+**CUDA Random Forest:**
+```bash
+./cuda_rf_death_pred mimic_data.csv  # Requires NVIDIA GPU with CUDA support
+```
+
+**OpenMP + MPI Random Forest Hybrid:**
+```bash
+export OMP_NUM_THREADS=4
+mpirun -np 2 ./hybrid_openmp_mpi_rf_death_pred mimic_data.csv
+```
+
+**Pthread + MPI Random Forest Hybrid:**
+```bash
+mpirun -np 2 ./hybrid_pthread_mpi_rf_death_pred mimic_data.csv 4
+```
+
+**OpenMP + Pthread Random Forest Hybrid:**
+```bash
+export OMP_NUM_THREADS=4
+./hybrid_openmp_pthread_rf_death_pred mimic_data.csv 2
+```
+
+**Triple Hybrid Random Forest (MPI + OpenMP + Pthread):**
+```bash
+export OMP_NUM_THREADS=2
+mpirun -np 2 ./hybrid_triple_rf_death_pred mimic_data.csv 2
 ```
 
 **Transformer (Python/PyTorch):**
@@ -272,6 +342,7 @@ cd deathPrediction
 | **Logistic Regression** | Linear model using gradient descent | Simple, fast, probabilistic outputs | When feature relationships are linear |
 | **Decision Tree** | Tree-based using entropy/information gain | Interpretable, handles non-linear patterns | When interpretability is important |
 | **Gradient Boosting** | Ensemble of regression trees on pseudo-residuals | Strong predictive power, handles interactions | When accuracy matters most (C++, parallelised) |
+| **Random Forest** | Ensemble of decision trees with bootstrap + random features | Robust, low variance, parallelisable | When variance reduction and ensemble diversity matter |
 | **Transformer** | Tabular self-attention over feature tokens | Captures feature interactions via attention | Flexible deep learning baseline (Python/PyTorch) |
 
 ### Expected Speedup Patterns
